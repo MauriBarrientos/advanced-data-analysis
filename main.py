@@ -3,43 +3,26 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from sqlalchemy import create_engine
 
+# configuración de la base de datos
 user = "root"
 password = ""
 host = "localhost"
+database = 'companydata'
 
+#conexión y carga de datos
 try:
-    mydb = connection.connect(
-        host = host,
-        user = user, 
-        passwd = password)
-    cursor = mydb.cursor()
-    query = "CREATE DATABASE IF NOT EXISTS companydata;"
-    cursor.execute(query)
-    mydb.close() 
-
-    mydb = connection.connect(
-        host = host,
-        database = 'companydata',
-        user = user, 
-        passwd = password)
-    cursor = mydb.cursor()
-    query = '''
-CREATE TABLE IF NOT EXISTS employeeperformance (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    employee_id INT NOT NULL,
-    department VARCHAR(255) NOT NULL,
-    performance_score DECIMAL(10, 2) NOT NULL,
-    years_with_company INT NOT NULL,
-    salary DECIMAL(10, 2) NOT NULL
-);
-'''
-    cursor.execute(query)
-    mydb.close() 
-
-    connection_query = f'mysql+mysqlconnector://{user}:{password}@{host}/companydata'
+    connection_query = f'mysql+mysqlconnector://{user}:{password}@{host}/{database}'
     engine = create_engine(connection_query)
 
+    #verificacion de datos y carga csv
     query = "SELECT * FROM employeeperformance;"
+    loader = DataLoader(engine)  # Utilizar la clase DataLoader para cargar los datos
+    loader.load_data(query)
+
+    if loader.get_data().empty:
+        data = pd.read_csv("data.csv")
+        data.to_sql('employeeperformance', con=engine, if_exists='append', index=False)
+        loader.load_data(query)
 
     result_dataFrame = pd.read_sql(query, con=engine)
 
